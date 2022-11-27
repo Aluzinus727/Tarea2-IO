@@ -2,9 +2,10 @@ from simulated_annealing import SimulatedAnnealing
 
 if __name__ == '__main__':
     sim_ann = SimulatedAnnealing(
-        max_iterations=1000,
-        alfa=0.01,
-        temperature=2500
+        min_temperature=0.01,
+        alfa=0.99,
+        temperature=250,
+        seed=1
     )
 
     sim_ann.run(n_problems=10)

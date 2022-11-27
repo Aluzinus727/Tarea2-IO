@@ -3,25 +3,27 @@ import copy
 import random
 import numpy as np
 
-
 from representation import Representation
 
 
 class SimulatedAnnealing:
     def __init__(
         self,
-        max_iterations: int,
+        min_temperature: float,
         alfa: float,
         temperature: int,
+        seed: int = None
     ):
         self.representation = Representation()
 
-        self.current_iterations = 0
-        self.max_iterations = max_iterations
+        self.min_temperature = min_temperature
 
         self.alfa = alfa
         self.temperature = temperature
         self.actual_temperature = temperature
+
+        if seed is not None:
+            random.seed(seed)
 
     def run(
         self, 
@@ -29,7 +31,7 @@ class SimulatedAnnealing:
     ):
         """
             Recibe un número que corresponde a la cantidad de veces a resolver el problema.
-            Muestra por pantalla el costo de la mejor solución de cada resolución, la media y la desviación estándar.
+            Muestra por pantalla el costo de la mejor solución encontrada para cada problema, la media y la desviación estándar.
         """
         costs = []
 
@@ -39,7 +41,6 @@ class SimulatedAnnealing:
 
             # Se reinician los valores iniciales de temperatura y número de iteraciones.
             self.actual_temperature = self.temperature
-            self.current_iterations = 0
 
         for i, cost in enumerate(costs, start=1):
             print(i, cost)
@@ -51,33 +52,48 @@ class SimulatedAnnealing:
         """
             Lógica principal del simulated annealing.
         """
-        solution = self.representation.get_initial_solution()
+        solution = best_solution = self.get_initial_solution()
 
         while not self.check_finish():
             new_solution = self.get_neighboor(solution)
             if new_solution is None:
-                solution = self.representation.get_initial_solution()
+                solution = self.get_initial_solution()
                 continue
 
             if self.check_acceptance(new_solution, solution):
                 solution = new_solution
 
+            if self.representation.get_cost(solution) < self.representation.get_cost(best_solution):
+                best_solution = solution
+
             self.cooling()
-            self.current_iterations += 1
 
-        print(self.representation.get_cost(solution), solution)
-        return self.representation.get_cost(solution)
+        print(self.representation.get_cost(best_solution), best_solution)
+        return self.representation.get_cost(best_solution)
 
+    def get_initial_solution(self):
+        """
+            Retorna la solución inicial de manera aleatoria.
+            Se verifica que la solución inicial sea válida.
+        """
+        solution = {}
+        keys = self.representation.get_instalations_keys()
+
+        while not self.representation.check_answer(solution):
+            for i in keys:
+                solution[i] = random.randint(0, 1)
+
+        return solution
 
     def cooling(self):
         """
             Se enfría la temperatura.
         """
-        self.actual_temperature = self.alfa * self.actual_temperature
+        self.actual_temperature *= self.alfa
 
     def get_neighboor(self, s: dict):
         """
-            Crea el vecindario mediante la heuristica bit-flip y retorna el vecino con la mejor solución.
+            Crea el vecindario mediante la heuristica bit-flip y retorna un vecino aleatoriamente.
             Se ignoran las soluciones no válidas, y si no encuentra ningun vecino con solución valida, retorna None.
         """
         valid_solutions = []
@@ -93,17 +109,12 @@ class SimulatedAnnealing:
 
         if len(valid_solutions) == 0:
             return None
-        
-        best_solution = valid_solutions[0]
-        for i in valid_solutions:
-            if self.representation.get_cost(i) <= self.representation.get_cost(best_solution):
-                best_solution = i
-
-        return best_solution
+    
+        return valid_solutions[random.randint(0, len(valid_solutions) - 1)]
 
     def check_acceptance(self, s1, s2):
         """
-            Criterio de aceptación.
+            Criterio de aceptación (metrópolis).
         """
         difference = self.representation.get_cost(s1) - self.representation.get_cost(s2)
         if difference < 0:
@@ -122,8 +133,6 @@ class SimulatedAnnealing:
     def check_finish(self):
         """
             Criterio de término.
+            Si la temperatura actual es menor a la temperatura mínima, finaliza.
         """
-        if self.current_iterations >= self.max_iterations:
-            return True
-        
-        return False
+        return self.actual_temperature <= self.min_temperature

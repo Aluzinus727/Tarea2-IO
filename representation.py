@@ -1,5 +1,4 @@
 import csv
-import random
 
 
 class Representation:
@@ -28,17 +27,8 @@ class Representation:
                 }
 
 
-    def get_initial_solution(self):
-        """
-            Retorna la solución inicial de manera aleatoria.
-        """
-        solution = {}
-
-        while not self.check_answer(solution):
-            for i in self.instalations.keys():
-                solution[i] = random.randint(0, 1)
-
-        return solution
+    def get_instalations_keys(self):
+        return self.instalations.keys()
 
     def check_answer(self, answer: dict):
         """
@@ -56,13 +46,11 @@ class Representation:
 
         covered = list(set(covered))
 
-        if len(covered) == len(self.instalations.keys()):
-            return True
-        
-        return
+        return len(covered) == len(self.instalations.keys())
 
     def get_cost(self, answer: dict):
         """
+            Función objetivo.
             Retorna el costo total de una solución.
         """
         total_cost = 0
